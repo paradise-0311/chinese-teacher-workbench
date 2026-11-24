@@ -4,8 +4,6 @@ on:
     branches: [main]
     paths:
       - manifest.json
-      - deploy.py
-      - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,16 +20,39 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install browser test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install real Chromium
+        run: npx playwright install --with-deps chromium
       - name: Download verified runtime
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release download --pattern site.zip
+        run: |
+          RELEASE_TAG=$(node -p "require('./manifest.json').version")
+          gh release download "$RELEASE_TAG" --pattern site.zip
       - name: Verify and extract
         run: python deploy.py
+      - name: Validate HTTP project-directory runtime before publishing
+        run: npm run test:http
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
       - uses: actions/deploy-pages@v5
         id: deployment
+      - name: Validate the real HTTPS website after publishing
+        env:
+          LIVE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node tests/acceptance.cjs --base "$LIVE_URL" --output test-results/https
+      - name: Save browser, network and CSP evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-acceptance
+          path: test-results
+          retention-days: 7
