@@ -1,7 +1,11 @@
 name: Deploy minimal teacher workbench
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths:
+      - manifest.json
+      - deploy.py
+      - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,13 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          if [ -n "$RELEASE_TAG" ]; then
-            gh release download "$RELEASE_TAG" --pattern site.zip
-          else
-            gh release download --pattern site.zip
-          fi
+        run: gh release download --pattern site.zip
       - name: Verify and extract
         run: python deploy.py
       - uses: actions/configure-pages@v5
