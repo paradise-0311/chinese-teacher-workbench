@@ -27,7 +27,8 @@ jobs:
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install real Chromium
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
       - name: Download verified runtime
         env:
           GH_TOKEN: ${{ github.token }}
