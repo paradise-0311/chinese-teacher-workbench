@@ -73,6 +73,7 @@ async function browserChecks(base,channel){
   try{
     await check('home entry, initialization, exact data contract',async()=>{
       await page.goto(base,{waitUntil:'domcontentloaded'});
+      await page.waitForFunction(()=>document.body.dataset.ready==='true');
       await page.getByRole('link',{name:'精品题库',exact:true}).click();await ready();
       const state=await page.evaluate(()=>({keys:Object.keys(RC4_BANK),groups:RC4_BANK.catalog.groups.length,
         questions:RC4_BANK.catalog.questions.length,dataVersion:RC4_BANK.catalog.dataVersion,
@@ -204,7 +205,8 @@ async function browserChecks(base,channel){
       return {saved:1,backedUp:1,restored:1,virtualRecordInterfaceStayedInBrowser:true};
     });
     await check('exam module regression',async()=>{
-      await page.goto(base);await page.getByRole('searchbox',{name:'搜索学校、试卷、篇目或考点',exact:true}).fill('第十七中学');
+      await page.goto(base);await page.waitForFunction(()=>document.body.dataset.ready==='true');
+      await page.getByRole('searchbox',{name:'搜索学校、试卷、篇目或考点',exact:true}).fill('第十七中学');
       await page.getByRole('button',{name:'搜索',exact:true}).click();
       const results=page.getByRole('region',{name:'搜索结果',exact:true});
       await results.getByRole('link',{name:'2026-2027 学年河北省石家庄市第十七中学八年级（上）期中语文试卷',exact:true}).click();
