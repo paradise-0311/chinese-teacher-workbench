@@ -16,13 +16,20 @@ async function step(list,name,fn){
 }
 function asset(base,relative){return new URL(relative.split('/').map(encodeURIComponent).join('/'),base).href;}
 async function verifyResources(base){
-  const failures=[],checked=[];let next=0;
+  const failures=[],checked=[],retries=[];let next=0;
   // Fetch every published dependency, not only the first screen. The marker and
   // README are not browser dependencies and are not served by every Pages edge.
   const files=contract.files.filter(f=>!f.path.startsWith('.')&&!f.path.endsWith('README.md'));
   await Promise.all(Array.from({length:12},async()=>{
     while(next<files.length){const file=files[next++];try{
-      const response=await fetch(asset(base,file.path)+'?audit='+contract.version,{signal:AbortSignal.timeout(60000)});
+      let response;
+      for(let attempt=0;attempt<3;attempt++){
+        response=await fetch(asset(base,file.path)+'?audit='+contract.version,{signal:AbortSignal.timeout(60000)});
+        if(![429,502,503,504].includes(response.status)||attempt===2)break;
+        retries.push({path:file.path,status:response.status,attempt:attempt+1});
+        await response.arrayBuffer();
+        await new Promise(resolve=>setTimeout(resolve,1000*(attempt+1)));
+      }
       assert.equal(response.status,200,file.path+' HTTP status');
       const bytes=Buffer.from(await response.arrayBuffer());
       assert.equal(bytes.length,file.bytes,file.path+' byte count');assert.equal(hash(bytes),file.sha256,file.path+' SHA-256');
@@ -30,7 +37,7 @@ async function verifyResources(base){
     }catch(e){failures.push({path:file.path,error:e.message});}}
   }));
   assert.deepEqual(failures,[],JSON.stringify(failures));
-  return {files:checked.length,contentShards:contract.shards.length,mediaMappings:contract.images.length};
+  return {files:checked.length,contentShards:contract.shards.length,mediaMappings:contract.images.length,retries};
 }
 async function browserChecks(base,channel){
   const result={channel,checks:[],console:[],pageErrors:[],failedRequests:[],httpErrors:[],requests:[],csp:[]};
@@ -38,7 +45,10 @@ async function browserChecks(base,channel){
   result.browserVersion=browser.version();
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:1000},timezoneId:'Asia/Singapore'});
   await context.exposeBinding('__acceptanceCSPReport',(_,value)=>result.csp.push(value));
-  const page=await context.newPage();page.setDefaultTimeout(20000);
+  // The real HTTPS connection took 33 seconds to load the cold 4 MiB catalog.
+  // Explicit filter assertions remain at 20 seconds; network navigation gets 60.
+  context.setDefaultTimeout(60000);context.setDefaultNavigationTimeout(60000);
+  const page=await context.newPage();
   page.on('console',m=>result.console.push({type:m.type(),text:m.text(),location:m.location()}));
   page.on('pageerror',e=>result.pageErrors.push({message:e.message,stack:e.stack}));
   page.on('request',r=>result.requests.push({url:r.url(),method:r.method(),resourceType:r.resourceType()}));
