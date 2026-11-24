@@ -1,9 +1,11 @@
 {
   "asset": "site.zip",
-  "sha256": "1a76f6ab679b137b3813ef5df7f81df43aa1e2ba33f1c90ae358923b992e20a1",
-  "bytes": 25871155,
-  "files": 954,
+  "sha256": "a14516b2d10ce79741da21d08a5724cf14001edce596962a1d421d7838a851e0",
+  "bytes": 25871552,
+  "files": 955,
   "papers": 146,
   "groups": 694,
-  "questions": 3086
+  "questions": 3086,
+  "version": "v0.2.1-web-min.2",
+  "dataVersion": "V1.2+第001-008批答案+教师工作台质检20261030+石家庄本地新题32组123问_20261030+417小问标签校订20261030+非标签整改20261031+WY-V5-final-20261101+MODERN36-20261101+POETRY12-20261101 +QUALITY-V1-20261101+MODERN-THEME-20261101+MODERN-THEME-HUMAN-FINAL-20261101+现代文教师40篇_20261123"
 }
