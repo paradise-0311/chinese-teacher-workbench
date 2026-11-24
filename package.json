@@ -1,0 +1,11 @@
+{
+  "name": "chinese-teacher-workbench-acceptance",
+  "private": true,
+  "version": "0.2.1-web-min.2",
+  "scripts": {
+    "test:http": "node tests/acceptance.cjs --site _site --output test-results/http"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
